@@ -35,7 +35,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: package helm chart
-        run: helm package .
+        run: helm package --dependency-update .
 
       - name: install yq
         run: |
