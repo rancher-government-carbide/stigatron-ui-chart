@@ -1,0 +1,108 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+
+  release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          ref: main
+
+      - name: release
+        uses: actions/create-release@v1
+        id: create_release
+        with:
+          draft: false
+          prerelease: false
+          release_name: ${{ github.ref }}
+          tag_name: ${{ github.ref }}
+          # body_path: CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: install helm
+        uses: azure/setup-helm@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: package helm chart
+        run: helm package .
+
+      - name: install yq
+        run: |
+          VERSION=v4.34.1
+          BINARY=yq_linux_amd64
+          curl -Lo yq https://github.com/mikefarah/yq/releases/download/$VERSION/$BINARY && chmod +x yq
+
+      - name: get helm chart name and version
+        run: |
+          CHART_NAME=$(helm show chart . | ./yq .name)
+          CHART_VERSION=$(helm show chart . | ./yq .version)
+          echo "CHART_NAME=$CHART_NAME" >> $GITHUB_ENV
+          echo "CHART_VERSION=$CHART_VERSION" >> $GITHUB_ENV
+
+      - name: upload chart to release artifacts
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./${{ env.CHART_NAME }}-${{ env.CHART_VERSION }}.tgz
+          asset_name: ${{ env.CHART_NAME }}-${{ env.CHART_VERSION }}.tgz
+          asset_content_type: application/x-tar
+
+
+
+#      - name: generate helm index
+#        run: helm repo index $REPO --url $UPLOAD_URL --merge carbide-charts/index.yaml
+#        env:
+#          REPO: ${{ github.repository }}
+#          UPLOAD_URL: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ github.ref_name }}.tgz
+#
+#      - name: upload index to release artifacts
+#        uses: actions/upload-release-asset@v1
+#        env:
+#          GITHUB_TOKEN: ${{ github.token }}
+#        with:
+#          upload_url: ${{ steps.create_release.outputs.upload_url }}
+#          asset_path: ./${{ github.repository }}/.tgz
+#          asset_name: ${{ github.repository }}-${{ github.ref_name }}.tgz
+#          asset_content_type: application/tar
+            
+#      - name: checkout carbide-charts to gh-pages branch
+#        uses: actions/checkout@v3
+#        with:
+#          repository: rancherfederal/carbide-charts
+#          ref: gh-pages
+#          path: carbide-charts
+#          token: ${{ secrets.CARBIDE_TOKEN }}
+#
+#      - name: configure git
+#        run: |
+#          # remove default auth header to allow for pushing to a different repo
+#          git config --unset-all http.https://github.com/.extraheader
+#          git config user.name "gh-release-action"
+#          git config user.email "$REPO-release-action@github.com"
+#        env:
+#          REPO: ${{ github.repository }}
+#
+#
+#      - name: upload chart index to github pages of carbide-charts repo
+#        run: |
+#          cd carbide-charts/
+#          git add index.yaml
+#          git commit -m "$COMMIT_MSG" 
+#          git push https://"$USER":"$CARBIDE_TOKEN"@github.com/rancherfederal/carbide-charts gh-pages
+#        env:
+#          USER: helm-releaser
+#          CARBIDE_TOKEN: ${{ secrets.CARBIDE_TOKEN }}
+#          COMMIT_MSG: "Update index.yaml for ${{ github.repository }} ${{ github.ref_name }}"
