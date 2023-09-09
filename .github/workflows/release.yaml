@@ -29,36 +29,36 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-      - name: install helm
-        uses: azure/setup-helm@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: package helm chart
-        run: helm package --dependency-update .
-
-      - name: install yq
-        run: |
-          VERSION=v4.34.1
-          BINARY=yq_linux_amd64
-          curl -Lo yq https://github.com/mikefarah/yq/releases/download/$VERSION/$BINARY && chmod +x yq
-
-      - name: get helm chart name and version
-        run: |
-          CHART_NAME=$(helm show chart . | ./yq .name)
-          CHART_VERSION=$(helm show chart . | ./yq .version)
-          echo "CHART_NAME=$CHART_NAME" >> $GITHUB_ENV
-          echo "CHART_VERSION=$CHART_VERSION" >> $GITHUB_ENV
-
-      - name: upload chart to release artifacts
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./${{ env.CHART_NAME }}-${{ env.CHART_VERSION }}.tgz
-          asset_name: ${{ env.CHART_NAME }}-${{ env.CHART_VERSION }}.tgz
-          asset_content_type: application/x-tar
+            #       - name: install helm
+            #         uses: azure/setup-helm@v3
+            #         with:
+            #           token: ${{ secrets.GITHUB_TOKEN }}
+            # 
+            #       - name: package helm chart
+            #         run: helm package --dependency-update .
+            # 
+            #       - name: install yq
+            #         run: |
+            #           VERSION=v4.34.1
+            #           BINARY=yq_linux_amd64
+            #           curl -Lo yq https://github.com/mikefarah/yq/releases/download/$VERSION/$BINARY && chmod +x yq
+            # 
+            #       - name: get helm chart name and version
+            #         run: |
+            #           CHART_NAME=$(helm show chart . | ./yq .name)
+            #           CHART_VERSION=$(helm show chart . | ./yq .version)
+            #           echo "CHART_NAME=$CHART_NAME" >> $GITHUB_ENV
+            #           echo "CHART_VERSION=$CHART_VERSION" >> $GITHUB_ENV
+            # 
+            #       - name: upload chart to release artifacts
+            #         uses: actions/upload-release-asset@v1
+            #         env:
+            #           GITHUB_TOKEN: ${{ github.token }}
+            #         with:
+            #           upload_url: ${{ steps.create_release.outputs.upload_url }}
+            #           asset_path: ./${{ env.CHART_NAME }}-${{ env.CHART_VERSION }}.tgz
+            #           asset_name: ${{ env.CHART_NAME }}-${{ env.CHART_VERSION }}.tgz
+            #           asset_content_type: application/x-tar
 
 
 
